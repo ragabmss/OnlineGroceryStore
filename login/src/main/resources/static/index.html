@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<body>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Grocery Store</title>
+    <link type="text/css" href="css/style.css" rel="stylesheet"/>
+    <script type="text/javascript" src="/webjars/jquery/jquery.min.js"></script>
+    <script type="text/javascript" src="/webjars/js-cookie/js.cookie.js"></script>
+    <script type="text/javascript">
+			$.ajaxSetup({
+				beforeSend: function (xhr, settings) {
+					if (settings.type == 'POST' || settings.type == 'PUT'
+						|| settings.type == 'DELETE') {
+						if (!(/^http:.*/.test(settings.url) || /^https:.*/
+							.test(settings.url))) {
+							// Only send the token to relative URLs i.e. locally.
+							xhr.setRequestHeader("X-XSRF-TOKEN",
+								Cookies.get('XSRF-TOKEN'));
+						}
+					}
+				}
+			});
+			$.get("/login/user", function (data) {
+				$("#user").html(data.userAuthentication.details.name);
+				$("#userSub").html(data.userAuthentication.details.sub);
+				$("#userEmail").html(data.userAuthentication.details.email);
+				$("#provider").html(data.userAuthentication.details.identities[0].provider);
+				$(".unauthenticated").hide()
+				$(".authenticated").show()
+			}).fail(function () {
+				$(".unauthenticated").show()
+				$(".authenticated").hide()
+			});
+
+			$.get("/login/getCustomUserToken", function (data) {
+				$("#serviceToken").html(data);
+				$(".unauthenticated").hide()
+				$(".authenticated").show()
+			}).fail(function () {
+				$(".unauthenticated").show()
+				$(".authenticated").hide()
+			});
+
+			$.get("/login/userInfo", function (data) {
+				$("#userInfoString").html(data);
+				$(".unauthenticated").hide()
+				$(".authenticated").show()
+			}).fail(function () {
+				$(".unauthenticated").show()
+				$(".authenticated").hide()
+			});
+
+			$.get("/login/userToken", function (data) {
+				$("#userToken").html(data);
+				$(".unauthenticated").hide()
+				$(".authenticated").show()
+			}).fail(function () {
+				$(".unauthenticated").show()
+				$(".authenticated").hide()
+			});
+			$.get("/login/getTxnToken", function (data) {
+				$("#txnToken").html(data);
+				$(".unauthenticated").hide()
+				$(".authenticated").show()
+			}).fail(function () {
+				$(".unauthenticated").show()
+				$(".authenticated").hide()
+			});
+
+			var logout = function () {
+				$.post("/logout", function () {
+					$("#user").html('');
+					$(".unauthenticated").show();
+					$(".authenticated").hide();
+				})
+				return true;
+			}
+
+
+
+    </script>
+
+</head>
+<div class="container unauthenticated" style="text-align: center;">
+    <strong>Online Grocery Store</strong><br>
+    <a href="/login">LOGIN</a>
+    <br><br>
+</div>
+<div class="container authenticated" style="text-align: center;">
+    <strong>Logged in as: <span id="user"></span></strong>
+    <br>
+    <br>
+    <strong>User Token: </strong>
+    <br>
+    <br>
+    <span id="userToken"></span>
+    <br>
+    <br>
+    <strong>Order ID: </strong>
+    <br>
+    <br>
+    <span id="txnToken"></span>
+    <br>
+    <br>
+    <strong>Service Token: </strong>
+    <br>
+    <span id="serviceToken"></span>
+    <br>
+    <br>
+    <button onClick="logout()">Logout</button>
+</div>
+
+<div class="container authenticated" style="text-align: left;">
+    <br><b>
+    <font color="green"><strong>Product Details</strong></font>
+</b>
+    <br>
+    <table id="table" border="1">
+        <tr>
+            <th>Product Id</th>
+            <th>Product Name</th>
+            <th>Product Price</th>
+        </tr>
+        <tr>
+            <td>1</td>
+            <td>Tofu</td>
+            <td>10</td>
+        </tr>
+        <tr>
+            <td>2</td>
+            <td>Mango</td>
+            <td>20</td>
+        </tr>
+        <tr>
+            <td>3</td>
+            <td>Juice</td>
+            <td>15</td>
+        </tr>
+    </table>
+    <br>
+    <br><b>
+    <font color="green"> Your Order Details: </font>
+</b><br>
+
+    Product Name:<input type="text" name="productName" id="productName">
+    Product Quantity:<input type="text" name="productQuantity" id="productQuantity">
+    Product Price:<input type="text" name="productPrice" id="productPrice">
+    <input type="button" id="tst" value="Submit Order" onclick="placeOrder()"/>
+    <br>
+    <br>
+    <span id="results"></span>
+    <script>
+
+			function placeOrder() {
+
+				var productName = document.getElementById('productName').value;
+				var productQuantity = document.getElementById('productQuantity').value;
+				var productPrice = document.getElementById('productPrice').value;
+				var txnToken = document.getElementById('txnToken').innerHTML.substring(0, 10) + Math.floor(Math.random() * 1000);
+				var serviceToken = document.getElementById('serviceToken').innerHTML.substring(0, 20);
+				var userToken = document.getElementById('userToken').innerHTML.substring(0, 20);
+				console.log(userToken);
+				console.log("\n");
+				console.log(txnToken);
+				console.log("\n");
+				console.log(serviceToken);
+				var datas = `{
+                    "products": [
+                        {
+                            "productName": "${productName}",
+                            "productQuantity": "${productQuantity}",
+                            "productPrice": "${productPrice}"
+                        }
+                    ],
+                    "txnToken": "${txnToken}",
+                    "userToken": "${userToken}",
+                    "serviceToken": "${serviceToken}"
+                }`;
+
+				$.ajax({
+					url: "/login/orders",
+					contentType: "application/json",
+					dataType: 'json',
+					type: "post",
+					data: datas,
+					success: function (data) {
+						alert("Woohoooo!!!!! Your order is placed Successfully...");
+						document.getElementById("results").value = data.value;
+						console.log(data);
+					    }
+				        }).done(function (msg) {});
+			    }
+
+			function getTxnToken() {
+
+				$.get("/getTxnToken", function (data) {
+					$("#txnToken").html(data);
+				    });
+			    }
+
+    </script>
+    <br>
+</div>
+</body>
+
+</html>
